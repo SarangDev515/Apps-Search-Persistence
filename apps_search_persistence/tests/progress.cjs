@@ -1,0 +1,26 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync(path.join(__dirname,'../static/src/js/upgrade_progress.js'),'utf8').replace(/^import .*;$/gm,'').replace('export class','class');
+function bus(){const listeners={};return {addEventListener(n,f){(listeners[n] ||= []).push(f);},trigger(n,detail){for(const f of listeners[n]||[])f({detail});}};}
+let now=0,interval=null,blocks=0;const rpcBus=bus(),env={bus:bus()},services=new Map();
+vm.runInNewContext(source,{Component:class{},reactive:x=>x,useState:x=>x,useService:()=>{},useActiveElement:()=>{},xml:()=>'',rpcBus,registry:{category:n=>({add(k,v){if(n==='services')services.set(k,v);}})},Date:{now:()=>now},browser:{setInterval:f=>{interval=f;return 1;},clearInterval:()=>{interval=null;}}});
+const {state}=services.get('apps_upgrade_progress').start(env,{ui:{block(){blocks++},unblock(){blocks--}},orm:{read:async(model,ids)=>ids.map(id=>({id,shortdesc:"Fetched App "+id}))}});
+const request=(id,method='button_immediate_upgrade')=>({id,params:{model:'ir.module.module',method}});
+rpcBus.trigger('RPC:REQUEST',{data:request(1,'button_immediate_install')});assert.equal(state.visible,false);
+rpcBus.trigger('RPC:REQUEST',{data:request(2)});assert.equal(state.visible,true);assert.equal(state.percent,5);assert.equal(blocks,1);
+now=300000;interval();assert.equal(state.percent<=95,true);
+rpcBus.trigger('RPC:RESPONSE',{data:request(99),error:{}});assert.equal(state.visible,true);
+rpcBus.trigger('RPC:RESPONSE',{data:request(2),result:{type:'ir.actions.client',tag:'reload'}});assert.equal(state.percent,100);assert.equal(interval,null);
+env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(state.visible,false);assert.equal(blocks,0);
+rpcBus.trigger('RPC:REQUEST',{data:request(3)});rpcBus.trigger('RPC:RESPONSE',{data:request(3),error:{message:'Failed'}});assert.equal(state.visible,false);assert.equal(blocks,0);assert.equal(interval,null);
+rpcBus.trigger('RPC:REQUEST',{data:request(4)});rpcBus.trigger('RPC:RESPONSE',{data:request(4),result:{type:'ir.actions.act_window'}});assert.equal(state.visible,false);assert.equal(blocks,0);
+rpcBus.trigger('RPC:REQUEST',{data:request(5)});rpcBus.trigger('RPC:RESPONSE',{data:request(5),result:{type:'ir.actions.act_url',target:'self',url:'/odoo/apps'}});assert.equal(state.percent,100);
+env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(blocks,0);
+rpcBus.trigger('RPC:RESPONSE',{data:{params:{model:'ir.module.module',method:'web_search_read'}},result:{records:[{id:10,shortdesc:'Contract Retention'},{id:11,shortdesc:'Sales'}]}});
+const namedRequest=(id,ids)=>({id,params:{model:'ir.module.module',method:'button_immediate_upgrade',args:[ids]}});
+rpcBus.trigger('RPC:REQUEST',{data:namedRequest(6,[10])});assert.equal(state.applicationNames,'Contract Retention');
+rpcBus.trigger('RPC:RESPONSE',{data:namedRequest(6,[10]),error:{}});
+rpcBus.trigger('RPC:REQUEST',{data:namedRequest(7,[10,11,10])});assert.equal(state.applicationNames,'Contract Retention, Sales');
+rpcBus.trigger('RPC:RESPONSE',{data:namedRequest(7,[10,11]),error:{}});
+rpcBus.trigger('RPC:REQUEST',{data:namedRequest(8,[12])});
+setImmediate(()=>{assert.equal(state.applicationNames,'Fetched App 12');rpcBus.trigger('RPC:RESPONSE',{data:namedRequest(8,[12]),error:{}});assert.equal(state.applicationNames,'');console.log('Application name checks passed: single name, comma-separated multiple names, deduplicated IDs, missing-name lookup, cleanup');});
+console.log('Progress lifecycle checks passed: ignored install, start/blur state, estimated cap, response matching, success, cleanup, error, wizard, URL reload');
