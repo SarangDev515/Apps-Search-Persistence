@@ -3,18 +3,21 @@ const source=fs.readFileSync(path.join(__dirname,'../static/src/js/upgrade_progr
 function bus(){const listeners={};return {addEventListener(n,f){(listeners[n] ||= []).push(f);},trigger(n,detail){for(const f of listeners[n]||[])f({detail});}};}
 let now=0,interval=null,blocks=0;const rpcBus=bus(),env={bus:bus()},services=new Map();
 vm.runInNewContext(source,{Component:class{},reactive:x=>x,useState:x=>x,useService:()=>{},useActiveElement:()=>{},xml:()=>'',rpcBus,registry:{category:n=>({add(k,v){if(n==='services')services.set(k,v);}})},Date:{now:()=>now},browser:{setInterval:f=>{interval=f;return 1;},clearInterval:()=>{interval=null;}}});
-const {state}=services.get('apps_upgrade_progress').start(env,{ui:{block(){blocks++},unblock(){blocks--}},orm:{read:async(model,ids)=>ids.map(id=>({id,shortdesc:"Fetched App "+id}))}});
+const titleParts={action:'Apps',zopenerp:'Odoo'};
+const title={getParts:()=>({...titleParts}),setParts(parts){for(const [key,val] of Object.entries(parts)){if(val)titleParts[key]=val;else delete titleParts[key];}}};
+const {state}=services.get('apps_upgrade_progress').start(env,{title,ui:{block(){blocks++},unblock(){blocks--}},orm:{read:async(model,ids)=>ids.map(id=>({id,shortdesc:"Fetched App "+id}))}});
 const request=(id,method='button_immediate_upgrade')=>({id,params:{model:'ir.module.module',method}});
 rpcBus.trigger('RPC:REQUEST',{data:request(1,'button_immediate_install')});assert.equal(state.visible,false);
 rpcBus.trigger('RPC:REQUEST',{data:request(2)});assert.equal(state.visible,true);assert.equal(state.percent,5);assert.equal(blocks,1);
+assert.equal(Object.values(titleParts)[0],"| 5% | 01 : 30 | Progress |");assert.equal(titleParts.action,"Apps");
 assert.equal(state.remainingTime,"01:30");assert.equal(state.overEstimate,false);
-now=1000;interval();assert.equal(state.remainingTime,"01:29");
+now=1000;interval();assert.equal(state.remainingTime,"01:29");assert.match(titleParts.apps_upgrade_progress,/01 : 29/);
 now=30500;interval();assert.equal(state.remainingTime,"01:00");
-now=90000;interval();assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,true);
+now=90000;interval();assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,true);assert.match(titleParts.apps_upgrade_progress,/00 : 00 \| Progress/);
 now=300000;interval();assert.equal(state.remainingTime,"00:00");assert.equal(state.percent<=95,true);
 rpcBus.trigger('RPC:RESPONSE',{data:request(99),error:{}});assert.equal(state.visible,true);
-rpcBus.trigger('RPC:RESPONSE',{data:request(2),result:{type:'ir.actions.client',tag:'reload'}});assert.equal(state.percent,100);assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,false);assert.equal(interval,null);
-env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(state.visible,false);assert.equal(blocks,0);
+rpcBus.trigger('RPC:RESPONSE',{data:request(2),result:{type:'ir.actions.client',tag:'reload'}});assert.equal(state.percent,100);assert.equal(titleParts.apps_upgrade_progress,"| 100% | 00 : 00 | Complete |");assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,false);assert.equal(interval,null);
+env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(state.visible,false);assert.equal(blocks,0);assert.equal(titleParts.apps_upgrade_progress,undefined);assert.equal(titleParts.action,"Apps");
 rpcBus.trigger('RPC:REQUEST',{data:request(3)});assert.equal(state.remainingTime,'01:30');assert.equal(state.overEstimate,false);rpcBus.trigger('RPC:RESPONSE',{data:request(3),error:{message:'Failed'}});assert.equal(state.visible,false);assert.equal(blocks,0);assert.equal(interval,null);
 rpcBus.trigger('RPC:REQUEST',{data:request(4)});rpcBus.trigger('RPC:RESPONSE',{data:request(4),result:{type:'ir.actions.act_window'}});assert.equal(state.visible,false);assert.equal(blocks,0);
 rpcBus.trigger('RPC:REQUEST',{data:request(5)});rpcBus.trigger('RPC:RESPONSE',{data:request(5),result:{type:'ir.actions.act_url',target:'self',url:'/odoo/apps'}});assert.equal(state.percent,100);
