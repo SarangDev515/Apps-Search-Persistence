@@ -7,11 +7,15 @@ const {state}=services.get('apps_upgrade_progress').start(env,{ui:{block(){block
 const request=(id,method='button_immediate_upgrade')=>({id,params:{model:'ir.module.module',method}});
 rpcBus.trigger('RPC:REQUEST',{data:request(1,'button_immediate_install')});assert.equal(state.visible,false);
 rpcBus.trigger('RPC:REQUEST',{data:request(2)});assert.equal(state.visible,true);assert.equal(state.percent,5);assert.equal(blocks,1);
-now=300000;interval();assert.equal(state.percent<=95,true);
+assert.equal(state.remainingTime,"01:30");assert.equal(state.overEstimate,false);
+now=1000;interval();assert.equal(state.remainingTime,"01:29");
+now=30500;interval();assert.equal(state.remainingTime,"01:00");
+now=90000;interval();assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,true);
+now=300000;interval();assert.equal(state.remainingTime,"00:00");assert.equal(state.percent<=95,true);
 rpcBus.trigger('RPC:RESPONSE',{data:request(99),error:{}});assert.equal(state.visible,true);
-rpcBus.trigger('RPC:RESPONSE',{data:request(2),result:{type:'ir.actions.client',tag:'reload'}});assert.equal(state.percent,100);assert.equal(interval,null);
+rpcBus.trigger('RPC:RESPONSE',{data:request(2),result:{type:'ir.actions.client',tag:'reload'}});assert.equal(state.percent,100);assert.equal(state.remainingTime,"00:00");assert.equal(state.overEstimate,false);assert.equal(interval,null);
 env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(state.visible,false);assert.equal(blocks,0);
-rpcBus.trigger('RPC:REQUEST',{data:request(3)});rpcBus.trigger('RPC:RESPONSE',{data:request(3),error:{message:'Failed'}});assert.equal(state.visible,false);assert.equal(blocks,0);assert.equal(interval,null);
+rpcBus.trigger('RPC:REQUEST',{data:request(3)});assert.equal(state.remainingTime,'01:30');assert.equal(state.overEstimate,false);rpcBus.trigger('RPC:RESPONSE',{data:request(3),error:{message:'Failed'}});assert.equal(state.visible,false);assert.equal(blocks,0);assert.equal(interval,null);
 rpcBus.trigger('RPC:REQUEST',{data:request(4)});rpcBus.trigger('RPC:RESPONSE',{data:request(4),result:{type:'ir.actions.act_window'}});assert.equal(state.visible,false);assert.equal(blocks,0);
 rpcBus.trigger('RPC:REQUEST',{data:request(5)});rpcBus.trigger('RPC:RESPONSE',{data:request(5),result:{type:'ir.actions.act_url',target:'self',url:'/odoo/apps'}});assert.equal(state.percent,100);
 env.bus.trigger('ACTION_MANAGER:UI-UPDATED',{});assert.equal(blocks,0);
