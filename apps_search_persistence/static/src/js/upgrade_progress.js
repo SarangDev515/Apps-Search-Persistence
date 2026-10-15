@@ -20,36 +20,19 @@ export class UpgradeProgress extends Component {
         <div t-if="state.visible" class="asp_upgrade_backdrop" role="dialog"
              aria-modal="true" aria-labelledby="asp_upgrade_title" t-ref="root" tabindex="-1">
             <section class="asp_upgrade_card" t-att-aria-busy="state.percent !== 100">
-                <header class="asp_upgrade_header">
-                    <div class="asp_upgrade_icon" aria-hidden="true"><i class="fa fa-cubes"/></div>
-                    <div>
-                        <div class="asp_upgrade_eyebrow">SYSTEM UPDATE</div>
-                        <h2 id="asp_upgrade_title">Module upgrade</h2>
-                    </div>
-                    <span class="asp_upgrade_badge"><t t-esc="state.percent === 100 ? 'Completed' : 'In progress'"/></span>
-                </header>
-                <div class="asp_upgrade_application">
-                    <span>Selected applications</span>
-                    <strong><t t-esc="state.applicationNames || 'Loading application names…'"/></strong>
+                <h2 id="asp_upgrade_title">Upgrading module</h2>
+                <p class="asp_upgrade_module_name"><t t-esc="state.applicationNames || 'Loading module name…'"/></p>
+                <p class="asp_upgrade_caption" role="status" aria-live="polite"><t t-esc="state.message"/></p>
+                <div class="asp_upgrade_track" role="progressbar" aria-label="Estimated upgrade progress"
+                     aria-valuemin="0" aria-valuemax="100" t-att-aria-valuenow="state.percent">
+                    <div t-att-style="'width: ' + state.percent + '%;'"/>
                 </div>
-                <div class="asp_upgrade_metrics">
-                    <div class="asp_upgrade_ring" t-att-style="'--asp-progress: ' + state.percent + '%;'"
-                         role="progressbar" aria-label="Estimated upgrade progress"
-                         aria-valuemin="0" aria-valuemax="100" t-att-aria-valuenow="state.percent"
-                         t-att-aria-valuetext="state.percent + '% — ' + state.message">
-                        <div class="asp_upgrade_ring_inner"><strong><t t-esc="state.percent"/><span>%</span></strong><small>Estimated</small></div>
-                    </div>
-                    <div class="asp_upgrade_countdown" role="timer" aria-label="Estimated time remaining">
-                        <span>Estimated time remaining</span>
-                        <strong><t t-esc="state.remainingTime"/></strong>
-                        <small t-if="state.overEstimate" class="asp_upgrade_warning">Taking longer than estimated</small>
-                        <small t-else="">Duration may vary by module</small>
-                    </div>
+                <div class="asp_upgrade_details">
+                    <strong><t t-esc="state.percent"/>%</strong>
+                    <span>Estimated time: <strong><t t-esc="state.remainingTime"/></strong></span>
                 </div>
-                <p class="asp_upgrade_caption" role="status" aria-live="polite"><span class="asp_upgrade_status_dot" aria-hidden="true"/><t t-esc="state.message"/></p>
-                <div class="asp_upgrade_track" aria-hidden="true"><div t-att-style="'width: ' + state.percent + '%;'"/></div>
-                <p class="asp_upgrade_estimate">Progress and time are estimates, not live server measurements.</p>
-                <footer class="asp_upgrade_note"><i class="fa fa-info-circle" aria-hidden="true"/><span>Keep this tab open. Odoo will refresh automatically when the upgrade is complete.</span></footer>
+                <p t-if="state.overEstimate" class="asp_upgrade_warning">Taking longer than estimated. Waiting for Odoo to finish.</p>
+                <p class="asp_upgrade_note">Progress and time are estimates. Keep this tab open; Odoo will refresh automatically.</p>
             </section>
         </div>
     `;
@@ -62,8 +45,8 @@ export class UpgradeProgress extends Component {
 registry.category("main_components").add("AppsUpgradeProgress", { Component: UpgradeProgress });
 
 registry.category("services").add("apps_upgrade_progress", {
-    dependencies: ["ui", "orm"],
-    start(env, { ui, orm }) {
+    dependencies: ["ui", "orm", "title"],
+    start(env, { ui, orm, title }) {
         const state = reactive({ visible: false, percent: 0, message: "Waiting for Odoo…", applicationNames: "", remainingTime: "01:30", overEstimate: false });
         const requests = new Set();
         const nameCache = new Map();
@@ -101,6 +84,28 @@ registry.category("services").add("apps_upgrade_progress", {
                     }
                 });
         }
+        const TITLE_KEY = "apps_upgrade_progress";
+        let ownsTitle = false;
+        let lastTitle = "";
+        function updateTabTitle() {
+            const text = "| " + state.percent + "% | " + state.remainingTime.replace(":", " : ") +
+                " | " + (state.percent === 100 ? "Complete" : "Progress") + " |";
+            if (!ownsTitle) {
+                // Lead with progress in narrow tabs; preserve Odoo title parts/counters.
+                const parts = title.getParts();
+                title.setParts(Object.fromEntries(Object.keys(parts).map(key => [key, null])));
+                title.setParts({ [TITLE_KEY]: text, ...parts });
+                ownsTitle = true;
+            } else if (text !== lastTitle) {
+                title.setParts({ [TITLE_KEY]: text });
+            }
+            lastTitle = text;
+        }
+        function restoreTabTitle() {
+            if (ownsTitle) { title.setParts({ [TITLE_KEY]: null }); }
+            ownsTitle = false;
+            lastTitle = "";
+        }
         let timer = null;
         let startedAt = 0;
         let ownsBlock = false;
@@ -109,6 +114,7 @@ registry.category("services").add("apps_upgrade_progress", {
         }
         function close() {
             stopTimer();
+            restoreTabTitle();
             requests.clear();
             selectedIds.clear();
             generation++;
@@ -125,6 +131,7 @@ registry.category("services").add("apps_upgrade_progress", {
             state.overEstimate = elapsed >= ESTIMATED_UPGRADE_MS;
             state.percent = Math.min(95, Math.floor(5 + 90 * (1 - Math.exp(-elapsed / 30000))));
             state.message = state.percent >= 90 ? "Still waiting for Odoo to finish…" : "Odoo is processing the upgrade…";
+            updateTabTitle();
         }
         rpcBus.addEventListener("RPC:REQUEST", ({ detail }) => {
             const params = detail.data?.params;
@@ -139,6 +146,7 @@ registry.category("services").add("apps_upgrade_progress", {
                 startedAt = Date.now();
                 ownsBlock = true;
                 ui.block({ delay: 0 });
+                updateTabTitle();
                 timer = browser.setInterval(tick, 250);
             }
             const recordIds = params.args?.[0];
@@ -166,6 +174,7 @@ registry.category("services").add("apps_upgrade_progress", {
                 state.remainingTime = "00:00";
                 state.overEstimate = false;
                 state.message = "Upgrade completed. Refreshing Odoo…";
+                updateTabTitle();
             } else {
                 // Release the screen for configuration wizards and other actions.
                 close();
