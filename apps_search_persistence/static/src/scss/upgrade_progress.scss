@@ -1,47 +1,52 @@
 .asp_upgrade_backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    background: rgba(20, 16, 29, .58);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    outline: none;
+    position: fixed; inset: 0; z-index: 10000;
+    display: grid; place-items: center; padding: 24px;
+    background: rgba(24, 27, 38, .44);
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); outline: none;
 }
 .asp_upgrade_card {
-    width: 440px;
-    max-width: 100%;
-    padding: 32px;
-    border: 1px solid rgba(255, 255, 255, .75);
-    border-radius: 24px;
-    background: #fff;
-    color: #272335;
-    text-align: center;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, .28);
-    h2 { font-size: 23px; font-weight: 700; margin: 14px 0 8px; overflow-wrap: anywhere; max-height: 144px; overflow-y: auto; }
+    box-sizing: border-box; width: 520px; max-width: 100%; max-height: calc(100dvh - 48px); overflow-y: auto;
+    padding: 28px; border: 1px solid #e6e7eb; border-radius: 16px;
+    background: #fff; color: #252a34; text-align: left;
+    box-shadow: 0 20px 64px rgba(16, 24, 40, .2);
+    h2 { font-size: 21px; font-weight: 650; line-height: 1.3; margin: 3px 0 0; color: #252a34; }
 }
-.asp_upgrade_icon { color: #714b67; font-size: 27px; }
-.asp_upgrade_caption { color: #62576b; min-height: 24px; margin-bottom: 22px; }
-.asp_upgrade_ring {
-    width: 156px;
-    height: 156px;
-    margin: 0 auto;
-    padding: 9px;
-    border-radius: 50%;
-    background: conic-gradient(#714b67 0 var(--asp-progress), #eee8ee var(--asp-progress) 100%);
+.asp_upgrade_header { display: flex; align-items: center; gap: 12px; }
+.asp_upgrade_icon { flex-shrink: 0; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: #f3edf2; color: #714b67; font-size: 21px; }
+.asp_upgrade_eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 1.3px; color: #7b818e; }
+.asp_upgrade_badge { margin-left: auto; padding: 5px 9px; border: 1px solid #e8dfE6; border-radius: 6px; background: #faf6f9; font-size: 11px; font-weight: 600; color: #714b67; white-space: nowrap; }
+.asp_upgrade_application {
+    margin-top: 22px; padding: 14px 16px; border: 1px solid #e9ebef; border-radius: 9px; background: #f8f9fb;
+    span { display: block; font-size: 11px; color: #747b88; margin-bottom: 5px; }
+    strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; max-height: 84px; overflow-y: auto; }
 }
+.asp_upgrade_metrics { display: flex; align-items: center; justify-content: center; gap: 30px; padding: 25px 0; }
+.asp_upgrade_ring { flex-shrink: 0; box-sizing: border-box; width: 128px; height: 128px; padding: 7px; border-radius: 50%; background: conic-gradient(#714b67 0 var(--asp-progress), #eee9ed var(--asp-progress) 100%); }
 .asp_upgrade_ring_inner {
-    width: 100%; height: 100%; display: grid; place-items: center;
-    border-radius: 50%; background: #fff;
-    strong { font-size: 42px; font-weight: 750; letter-spacing: -2px; color: #714b67; }
-    span { font-size: 23px; letter-spacing: 0; }
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: #fff;
+    strong { font-size: 32px; font-weight: 700; line-height: 1.2; color: #714b67; font-variant-numeric: tabular-nums; }
+    span { font-size: 18px; margin-left: 2px; }
+    small { margin-top: 4px; font-size: 10px; color: #7b818e; }
 }
-.asp_upgrade_estimate { font-size: 12px; color: #716678; margin: 20px 0 14px; }
-.asp_upgrade_track {
-    height: 7px; border-radius: 8px; overflow: hidden; background: #eee8ee;
-    > div { height: 100%; border-radius: inherit; background: #714b67; transition: width .25s ease; }
+.asp_upgrade_countdown {
+    display: flex; flex-direction: column; gap: 6px;
+    > span { font-size: 12px; color: #747b88; }
+    strong { font-size: 32px; font-weight: 650; line-height: 1.15; letter-spacing: 1px; color: #252a34; font-variant-numeric: tabular-nums; }
+    small { font-size: 11px; color: #8b919c; line-height: 1.5; }
+    .asp_upgrade_warning { color: #946318; }
 }
-.asp_upgrade_note { font-size: 12px; line-height: 1.6; color: #716678; margin: 16px 0 0; }
+.asp_upgrade_caption { display: flex; align-items: center; gap: 8px; min-height: 20px; margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: #555d6b; }
+.asp_upgrade_status_dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: #714b67; }
+.asp_upgrade_track { height: 5px; border-radius: 5px; overflow: hidden; background: #eee9ed; > div { height: 100%; border-radius: inherit; background: #714b67; transition: width .25s ease; } }
+.asp_upgrade_estimate { font-size: 10px; line-height: 1.6; color: #858c98; margin: 9px 0 20px; }
+.asp_upgrade_note { display: flex; align-items: flex-start; gap: 9px; border-top: 1px solid #eceef1; padding-top: 16px; margin: 0; font-size: 12px; line-height: 1.6; color: #747b88; i { margin-top: 3px; color: #969daa; } }
+@media (max-width: 480px) {
+    .asp_upgrade_backdrop { padding: 16px; }
+    .asp_upgrade_card { padding: 20px; max-height: calc(100dvh - 32px); }
+    .asp_upgrade_header { flex-wrap: wrap; }
+    .asp_upgrade_metrics { gap: 18px; }
+    .asp_upgrade_ring { width: 110px; height: 110px; }
+    .asp_upgrade_countdown strong { font-size: 28px; }
+}
+@media (max-width: 360px) { .asp_upgrade_metrics { flex-direction: column; } .asp_upgrade_countdown { align-items: center; text-align: center; } }
 @media (prefers-reduced-motion: reduce) { .asp_upgrade_track > div { transition: none; } }
