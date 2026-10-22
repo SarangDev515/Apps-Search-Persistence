@@ -4,7 +4,9 @@
     'version': '19.0.1.0.6',
     'category': 'Technical',
     'author': 'SARANG T',
-    'license': 'LGPL-3',
+    'price': 5.00,
+    'currency': 'USD',
+    'license': 'OPL-1',
     "images": ["static/description/banner.png"],
     'depends': ['web'],
     'assets': {
