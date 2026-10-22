@@ -3,7 +3,6 @@
     'summary': 'Keep Apps search and view after a module upgrade',
     'version': '19.0.1.0.6',
     'category': 'Technical',
-    'author': 'Apps Search Persistence Contributors',
     'author': 'SARANG T',
     'license': 'LGPL-3',
     "images": ["static/description/banner.png"],
